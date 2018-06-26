@@ -1,0 +1,105 @@
+---
+title: "Biological Stressor Identification Process"
+author: "Christopher Main"
+date: "June 18, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+Abbreviation | Full Name
+----- | -------
+CM | Channel Modification
+IH | Instream Habitat
+P | Pools
+BSL | Bank Stability (Left)
+BSR | Bank Stability (Right)
+BVL | Bank Vegetative (Left)
+BVR | Bank Vegetative (Right)
+S | Shading
+RZL | Riparian Zone Width (Left)
+RZR | Riparian Zone Width (Right)
+Alkalinity | Alkalinity (Titrimetric, pH 4.5)
+NH3 | Ammonia as N, Total
+CBOD20 | BOD, 20-Day, N-Inhib (CBOD20)
+CBOD5 | BOD, 5-Day, N-Inhib (CBOD5)
+DOC | Carbon, Organic - Dissolved (DOC)
+TOC | Carbon, Organic - Total (TOC)
+Chloride | Chloride, Total
+Chla | Chlorophyll-a
+SpCond | Conductance, Specific - Field
+Flow | Flow, Cubic Feet Per Second
+Hardness | Hardness as CaCO3
+NOx | Nitrate/Nitrite as N, Total
+TN | Nitrogen, Total, Alkaline Persulfate
+OP | Orthophosphorus, Soluable
+DO | Oxygen, Dissolved - Membrane Electrode
+pH | pH, Field
+TP | Phosphorus, Total, Alkaline Persulfate
+TSS | Residue, Nonfilterable (TSS)
+Salinity | Salinity
+ATemp | Temperature, Air
+Temp | Temperature, Water
+Turbidity | Turbidity (Nephelometric)
+
+
+
+## Data cleanup and export
+
+Data from 2005 to Present is used for determining stressors.
+```{r datacleanup}
+# Clean up of Chemical tests
+chem = read.csv('csv/Chem_2005-Present.csv')
+chem = chem %>% separate(SampleNumber, c('OrderID', 'Sample'), '-')
+chem.spread = chem %>% spread(Test, Results) %>% rename(Collection.Date = CollectDate)
+
+# Clean up of Habitat numbers
+cp.hab = read.csv('csv/CP_Hab_assess_1999-Present.csv')
+cp.hab = cp.hab %>% separate(Sample.., c('OrderID', 'Sample'), '-') %>% rename(Site = Site.ID)
+cp.hab$Site = as.factor(cp.hab$Site)
+
+# Clean up of Bug numbers
+cp.bugs = read.csv('csv/CP_Bio_assess_1999-Present.csv')
+cp.bugs = cp.bugs %>% separate(Sample.., c('OrderID', 'Sample'), '-') %>% rename(Site = Site.ID)
+cp.bugs$Site = as.factor(cp.bugs$Site)
+
+# Join everything with bug data
+cp = inner_join(cp.hab, cp.bugs, by = c('OrderID', 'Site')) %>% inner_join(chem.spread) %>% select(-Sample.y, -Collection.Date.y, -Sample.x, -Comment, -CustomerSampleNumber, -Collection.Date.x) %>% distinct(Site, OrderID, .keep_all = TRUE)
+
+# Combine Good and Excellent Conditions
+cp = cp %>% mutate(Biotic.Classification = replace(Biotic.Classification, which(Biotic.Classification == 'Good condition'), 'Good Condition'), Biotic.Classification = replace(Biotic.Classification, which(Biotic.Classification == 'Moderately degraded'), 'Moderately Degraded'), Biotic.Classification = replace(Biotic.Classification, which(Biotic.Classification == 'Severely degraded'), 'Severely Degraded'), Biotic.Classification = replace(Biotic.Classification, which(Biotic.Classification == 'Excellent'), 'Good Condition'))
+
+write.csv(cp, 'csv/Coastal_plain.csv', row.names = FALSE)
+```
+
+## Bootstrap analysis
+```{r bootstrap}
+library(slipper)
+cp = read.csv('csv/Coastal_plain.csv')
+cp = cp %>% 
+  select(OrderID, Site, Watershed, Site.Location, Collection.Date, Habitat.Index = Habitat.Index.., Habitat.Classification, Biotic.Index = Biotic.Index...., Biotic.Classification, CM, IH, P, BSL, BSR, BVL, BVR, S, RZL, RZR, Alkalinity = Alkalinity..Titrimetric..pH.4.5., NH3 = Ammonia.as.N..Total, CBOD20 = BOD..20.Day..N.Inhib..CBOD20., CBOD5 = BOD..5.Day..N.Inhib..CBOD5., DOC = Carbon..Organic...Dissolved..DOC., TOC = Carbon..Organic...Total..TOC., Chloride = Chloride..Total, Chla = Chlorophyll.a, SpCond = Conductance..Specific...Field, Hardness = Hardness.as.CaCO3, NOx = Nitrate.Nitrite.as.N..Total, TN = Nitrogen..Total..Alkaline.Persulfate, OP = Orthophosphorus..Soluable, DO = Oxygen..Dissolved...Membrane.Electrode, OSat = Oxygen..Dissolved...Saturation, pH = pH..Field, TP = Phosphorus..Total..Alkaline.Persulfate, TSS = Residue..Nonfilterable..TSS., Salinity, ATemp = Temperature..Air, Temp = Temperature..Water, Turbidity = Turbidity..Nephelometric., Flow = Flow..Cubic.Feet.Per.Second)
+
+cm.boot = cp %>%
+  group_by(Biotic.Classification) %>% 
+  do(slipper(mean(CM), B = 10000, df = .)) %>% 
+  summarize('Lower Int' = quantile(value, 0.2), mean = mean(value), 'Upper Int' = quantile(value, 0.8))
+ih.boot = cp %>%
+  group_by(Biotic.Classification) %>% 
+  do(slipper(mean(IH), B = 10000, df = .)) %>% 
+  summarize('Lower Int' = quantile(value, 0.2), mean = mean(value), 'Upper Int' = quantile(value, 0.8))
+p.boot = cp %>%
+  group_by(Biotic.Classification) %>% 
+  do(slipper(mean(P), B = 10000, df = .)) %>% 
+  summarize('Lower Int' = quantile(value, 0.2), mean = mean(value), 'Upper Int' = quantile(value, 0.8))
+
+knitr::kable(x = cm.boot,
+             digits = 1,
+             caption = 'Channel Modification',
+             col.names = c('Biotic Classification',
+             'Lower 20% Limit',
+             'Mean',
+             'Upper 20% Limit'),
+             align = c('l','c','c','c'))
+```
