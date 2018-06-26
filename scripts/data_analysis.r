@@ -6,11 +6,12 @@ boot.mean = function(x, i){
   boot.mean = mean(x[i], na.rm = TRUE)
   }
 
+# Read in data as a tibble
 cp = read_csv('csv/Coastal_plain_cleaned.csv')
 
 
 
-cp %>% group_by(Biotic.Classification) %>% tidyboot_mean(., nboot = 10000, na.rm = TRUE)
+cp %>% group_by(Biotic.Classification) %>% tidyboot::tidyboot_mean(., nboot = 10000, na.rm = TRUE)
 
 cp %>% group_by(Biotic.Classification) %>% select(-Site, -Watershed, -Biotic.Classification) %>% map(~{ 
   b = boot::boot(.x, boot.mean, R = 20000, parallel = 'multicore', ncpus = 4);
