@@ -1,5 +1,4 @@
 library(tidyverse)
-library(slipper)
 library(boot)
 
 # Bootstrapping function to get the mean
@@ -18,14 +17,9 @@ cp.good = cp %>%
 
 good.boot = as.data.frame(apply(cp.good, 2, function(y){
   b = boot(y, boot.mean, R = 20000, parallel = 'multicore', ncpus = 4);
-  c(boot.ci(b, type="perc", conf=0.8), mean(b$t))
-}))
-
-good.boot = as.data.frame(apply(cp.good, 2, function(y){
-  b = boot(y, boot.mean, R = 20000, parallel = 'multicore', ncpus = 4);
   c(boot.ci(b, type="perc", conf=0.8)$percent[4], mean(b$t), boot::boot.ci(b, type="perc", conf=0.8)$percent[5])
 }))
-good.boot = good.boot %>% mutate(Condition = 'Good Condition') %>% select(Condition, CM:`Turbidity (Nephelometric)`)
+good.boot = good.boot %>% mutate(Condition = 'Good Condition') %>% select(Condition, CM:Turbidity)
 row.names(good.boot) = c('Lower 20% Limit', 'Mean', 'Upper 20% Limit')
 
 # Filter Moderately Degraded and bootstrap
@@ -37,7 +31,7 @@ mod.boot = as.data.frame(apply(cp.mod, 2, function(y){
   b = boot(y, boot.mean, R = 20000, parallel = 'multicore', ncpus = 4);
   c(boot.ci(b, type="perc", conf=0.8)$percent[4], mean(b$t), boot::boot.ci(b, type="perc", conf=0.8)$percent[5])
 }))
-mod.boot = mod.boot %>% mutate(Condition = 'Moderarely Degraded') %>% select(Condition, CM:`Turbidity (Nephelometric)`)
+mod.boot = mod.boot %>% mutate(Condition = 'Moderarely Degraded') %>% select(Condition, CM:Turbidity)
 row.names(mod.boot) = c('Lower 20% Limit', 'Mean', 'Upper 20% Limit')
 
 # Filter Severely Degraded and bootstrap
@@ -49,14 +43,16 @@ severe.boot = as.data.frame(apply(cp.severe, 2, function(y){
   b = boot(y, boot.mean, R = 20000, parallel = 'multicore', ncpus = 4);
   c(boot.ci(b, type="perc", conf=0.8)$percent[4], mean(b$t), boot::boot.ci(b, type="perc", conf=0.8)$percent[5])
 }))
-severe.boot = severe.boot %>% mutate(Condition = 'Severely Degraded') %>% select(Condition, CM:`Turbidity (Nephelometric)`)
+severe.boot = severe.boot %>% mutate(Condition = 'Severely Degraded') %>% select(Condition, CM:Turbidity)
 row.names(severe.boot) = c('Lower 20% Limit', 'Mean', 'Upper 20% Limit')
 
-boot.cp = bind_rows(good.boot, mod.boot, severe.boot) %>% mutate(Stat = c('Lower 20% Limit', 'Mean', 'Upper 20% Limit', 'Lower 20% Limit', 'Mean', 'Upper 20% Limit', 'Lower 20% Limit', 'Mean', 'Upper 20% Limit')) %>% select(Condition, Stat, CM:`Turbidity (Nephelometric)`) %>% group_by(Condition) %>% nest()
+boot.cp = bind_rows(good.boot, mod.boot, severe.boot) %>% mutate(Stat = c('Lower 20% Limit', 'Mean', 'Upper 20% Limit', 'Lower 20% Limit', 'Mean', 'Upper 20% Limit', 'Lower 20% Limit', 'Mean', 'Upper 20% Limit')) %>% select(Condition, Stat, CM:Turbidity) %>% group_by(Condition) %>% nest()
 
-boot.cp2 = bind_rows(good.boot, mod.boot, severe.boot) %>% mutate(Stat = c('Lower', 'Mean', 'Upper', 'Lower', 'Mean', 'Upper', 'Lower', 'Mean', 'Upper')) %>% unite(Factor, Condition, Stat, sep = "_") %>% gather(Test, Data, CM:`Turbidity (Nephelometric)`)
+boot.cp = bind_rows(good.boot, mod.boot, severe.boot) %>% mutate(Stat = c('Lower', 'Mean', 'Upper', 'Lower', 'Mean', 'Upper', 'Lower', 'Mean', 'Upper')) %>% select(Condition, Stat, CM:Turbidity) %>% gather(Test, Data, CM:Turbidity)
 
-write_csv(boot.cp2, 'csv/Coastal_plain_bootstrap.csv')
+boot.cp2 = bind_rows(good.boot, mod.boot, severe.boot) %>% mutate(Stat = c('Lower', 'Mean', 'Upper', 'Lower', 'Mean', 'Upper', 'Lower', 'Mean', 'Upper')) %>% unite(Factor, Condition, Stat, sep = "_") %>% gather(Test, Data, CM:Turbidity)
+
+write_csv(boot.cp, 'csv/Coastal_plain_bootstrap.csv')
 
 # Other ways?
 
