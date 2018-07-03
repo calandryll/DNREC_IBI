@@ -82,6 +82,13 @@ server = function(input, output, session){
                  '0.9' = 0.9
     )
     r = as.numeric(input$interations)
+    progress = Progress$new(session, min = 1, max = 15)
+    on.exit(progress$close())
+    progress$set(message = 'Calculation in Progress')
+    for (i in 1:15) {
+      progress$set(value = i)
+      Sys.sleep(0.5)
+    }
     dat = pairwisePercentileTest(data = cp,
                                  group = 'Biotic.Classification',
                                  column = column,
@@ -96,16 +103,10 @@ server = function(input, output, session){
         ggplot(aes(y = Condition, x = Mean, color = Condition)) + 
         geom_point(aes(size = 1)) + 
         geom_segment(aes(xend = Upper, x = Lower, y = Condition, yend = Condition)) + 
-        theme(axis.title = element_blank(), legend.position = 'none') +
+        theme(axis.title = element_blank(), legend.position = 'none', panel.grid.minor = element_blank(), panel.border = element_rect(color = 'black', fill = NA), axis.text = element_text(size = 15)) +
         scale_y_discrete(limits = unique(rev(cp_plot$Condition)))
     })
-    output$data_table = renderPrint({progress = Progress$new(session, min = 1, max = 15)
-    on.exit(progress$close())
-    progress$set(message = 'Calculation in Progress')
-    for (i in 1:15) {
-      progress$set(value = i)
-      Sys.sleep(0.5)
-    }
+    output$data_table = renderPrint({
     table})
     })
 
