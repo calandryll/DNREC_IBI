@@ -16,7 +16,8 @@ ui = fluidPage(
     actionButton('go', 'Calculate Percentile')
   ),
   mainPanel(plotOutput('plot'),
-    verbatimTextOutput('data_table')
+    verbatimTextOutput('data_table'),
+    verbatimTextOutput('data_sub')
   )
 )
 
@@ -108,11 +109,13 @@ server = function(input, output, session){
         geom_point(aes(size = 1)) + 
         geom_segment(aes(xend = Upper, x = Lower, y = Condition, yend = Condition)) + 
         theme(axis.title = element_blank(), legend.position = 'none', panel.grid.minor = element_blank(), panel.border = element_rect(color = 'black', fill = NA), axis.text = element_text(size = 15)) +
+        ggtitle('80% CI Bootstrap (20,000)') +
         scale_y_discrete(limits = unique(rev(cp_plot$Condition))) +
         scale_x_continuous(limits = c(min(xlow$Min), max(xlow$Max)))
     })
-    output$data_table = renderPrint({
-    table})
+    output$data_table = renderPrint({table})
+    output$data_sub = renderText({'* P < 0.05, ** P < 0.01, *** P < 0.001'
+      })
     })
 
 }
