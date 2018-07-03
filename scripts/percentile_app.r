@@ -97,6 +97,10 @@ server = function(input, output, session){
 
     table = dat %>% select(Comparison, p.adjust) %>% mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', ifelse(p.adjust <= 0.01, '**', ifelse(p.adjust <= 0.05, '*', ''))))
     output$plot = renderPlot({
+      xlow = cp_plot %>% 
+        filter(Test == column) %>% 
+        spread(Stat, Data) %>% 
+        summarize(Min = min(Lower), Max = max(Upper))
       cp_plot %>% 
         filter(Test == column) %>% 
         spread(Stat, Data) %>% 
@@ -104,7 +108,8 @@ server = function(input, output, session){
         geom_point(aes(size = 1)) + 
         geom_segment(aes(xend = Upper, x = Lower, y = Condition, yend = Condition)) + 
         theme(axis.title = element_blank(), legend.position = 'none', panel.grid.minor = element_blank(), panel.border = element_rect(color = 'black', fill = NA), axis.text = element_text(size = 15)) +
-        scale_y_discrete(limits = unique(rev(cp_plot$Condition)))
+        scale_y_discrete(limits = unique(rev(cp_plot$Condition))) +
+        scale_x_continuous(limits = c(min(xlow$Min), max(xlow$Max)))
     })
     output$data_table = renderPrint({
     table})
