@@ -1,7 +1,9 @@
+library(tidyverse)
+library(bayesboot)
+
 pairwisePercentileTest = function (column = NULL, group = NULL, data = NULL,
           tau = 0.5, type = 7, threshold = NA, comparison = "<", r = 1000, 
-          digits = 4, progress = "FALSE", method = "fdr") 
-{
+          digits = 4, progress = "FALSE", method = "fdr"){
   x = data[[column]]
   g = data[[group]]
   
@@ -45,8 +47,7 @@ pairwisePercentileTest = function (column = NULL, group = NULL, data = NULL,
 
 percentileTest = function (formula = NULL, data = NULL, x = NULL, y = NULL, 
           tau = 0.5, type = 7, threshold = NA, comparison = "<", r = 1000, 
-          digits = 4, progress = "FALSE", test = 'percentile') 
-{
+          digits = 4, progress = "FALSE", test = 'percentile'){
   if (is.null(formula)) {
     xy = c(x, y)
     xname = paste(as.character(substitute(x)), collapse = " ")
@@ -150,6 +151,26 @@ percentileTest = function (formula = NULL, data = NULL, x = NULL, y = NULL,
 
   W = list(Test = V, Summary = Z, Result = U)
   return(W)
+}
+
+
+bootanalysis = function (data = NULL, column = NULL, r = NULL, upper_conf = NULL){
+  good = data %>% filter(Biotic.Classification == 'Good Condition')
+  moderate = data %>% filter(Biotic.Classification == 'Moderately Degraded')
+  severe = data %>% filter(Biotic.Classification == 'Severely Degraded')
+
+  low_conf = 1 - upper_conf
+  good.boot = bayesboot(good[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
+  moderate.boot = bayesboot(moderate[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
+  severe.boot = bayesboot(severe[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
+  
+  boot.cp = tribble(~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
+                    'Good Condition', quantile(good.boot$V1, low_conf), mean(good.boot$V1), quantile(good.boot$V1, upper_conf), 
+                    'Moderately Degraded', quantile(moderate.boot$V1, low_conf), mean(moderate.boot$V1), quantile(moderate.boot$V1, upper_conf),
+                    'Severely Degraded', quantile(severe.boot$V1, low_conf), mean(severe.boot$V1), quantile(severe.boot$V1, upper_conf)
+  )
+  
+  return(boot.cp)
 }
 
 
