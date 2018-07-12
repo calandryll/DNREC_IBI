@@ -3,9 +3,10 @@ library(shinythemes)
 library(tidyverse)
 library(bayesboot)
 library(DT)
+library(ggthemes)
 source('fun_percentile.r')
 
-cp = read_csv('../csv/Coastal_plain_cleaned.csv')
+combined = read_csv('../csv/IBI_cleaned.csv')
 
 ui = fluidPage(
   theme = shinytheme('paper'),
@@ -109,34 +110,72 @@ server = function(input, output, session){
       progress$set(value = i)
       Sys.sleep(0.5)
     }
-    dat = pairwisePercentileTest(data = cp,
+    cp = combined %>% filter(Region == 'Coastal Plain')
+    dat.cp = pairwisePercentileTest(data = cp,
                                  group = 'Biotic.Classification',
                                  column = column,
                                  tau = tau,
                                  r = r)
     
-    boot.cp = bootanalysis(data = cp, column = column, r = r, upper_conf = upper_conf)
+    pied = combined %>% filter(Region == 'Piedmont')
+    dat.pied = pairwisePercentileTest(data = pied,
+                                    group = 'Biotic.Classification',
+                                    column = column,
+                                    tau = tau,
+                                    r = r)
     
-    table = dat %>% 
+    boot.combined = bootanalysis(data = combined, column = column, r = r, upper_conf = upper_conf) %>% unite(Factor, Condition, Region, remove = FALSE)
+    
+    table.cp = dat.cp %>% 
       select(Comparison, p.adjust) %>% 
       mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
                                      ifelse(p.adjust <= 0.01, '**', 
-                                            ifelse(p.adjust <= 0.05, '*', NA)))) %>%
+                                            ifelse(p.adjust <= 0.05, '*', NA))), Region = 'Coastal Plain') %>%
       as_tibble()
     
-    cp_plot = boot.cp %>% 
-      ggplot(aes(y = Condition, x = Mean, color = Condition, tooltip = Mean), size = 2) +
+    table.pied = dat.pied %>% 
+      select(Comparison, p.adjust) %>% 
+      mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
+                                     ifelse(p.adjust <= 0.01, '**', 
+                                            ifelse(p.adjust <= 0.05, '*', NA))), Region = 'Piedmont') %>%
+      as_tibble()
+    
+    table = bind_rows(table.cp, table.pied)
+    
+    cp_plot = boot.combined %>% 
+      filter(Region == 'Coastal Plain') %>%
+      ggplot(aes(y = Condition, x = Mean, color = Condition, size = 2)) +
       geom_point(aes(size = 2)) +
       geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Condition), height = 0.25, size = 1.25) + 
       theme_tufte(base_size = 15) + 
       theme(axis.title = element_blank(), legend.position = 'none') +
       xlab(label = element_blank()) +
-      scale_y_discrete(limits = unique(rev(boot.cp$Condition)))
+      scale_y_discrete(limits = unique(rev(boot.combined$Condition)))
     
-    sig_table = as.tibble(cbind(boot.cp, table))
+    pied_plot = boot.combined %>% 
+      filter(Region == 'Piedmont') %>%
+      ggplot(aes(y = Condition, x = Mean, color = Condition, size = 2)) +
+      geom_point(aes(size = 2)) +
+      geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Condition), height = 0.25, size = 1.25) + 
+      theme_tufte(base_size = 15) + 
+      theme(axis.title = element_blank(), legend.position = 'none') +
+      xlab(label = element_blank()) +
+      scale_y_discrete(limits = unique(rev(boot.combined$Condition)))
+    
+    sig_table = bind_cols(boot.combined, table) %>% select(-Factor, -Region1)
+    
+    combined_plot = boot.combined %>% 
+      ggplot(aes(y = Factor, x = Mean, color = Region, shape = Condition), size = 2) +
+      geom_point(size = 3) +
+      geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Factor), height = 0.25, size = 1.25) + 
+      theme_tufte(base_size = 15) + 
+      xlab(label = element_blank()) +
+      scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 'Severely Degraded_Piedmont', 'Moderately Degraded_Coastal Plain', 'Moderately Degraded_Piedmont', 'Good Condition_Coastal Plain', 'Good Condition_Piedmont')) + 
+      theme(axis.title = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
     
     output$data_table = renderDataTable(datatable(sig_table, options = list(paging = FALSE, searching = FALSE)))
-    output$plot = renderPlot(cp_plot)
+    output$plot = renderPlot(combined_plot)
+    #output$plot2 = renderPlot(pied_plot)
     output$raw_data = renderDataTable(datatable(cp, options = list(lengthMenu = list(c(5, 15, 25, -1), c('5', '15', '25', 'All')),
                                                                    pageLength = 15
                                                                      )))
