@@ -3,17 +3,16 @@ library(shinythemes)
 library(tidyverse)
 library(bayesboot)
 library(DT)
-library(ggiraph)
 source('fun_percentile.r')
 
 cp = read_csv('../csv/Coastal_plain_cleaned.csv')
 
 ui = fluidPage(
+  theme = shinytheme('paper'),
   title = 'Coastal Plain Stressor Analyis',
   tabsetPanel(type = 'tabs',
-              #tabPanel('Plot', plotOutput('plot')),
-              tabPanel('Plot', ggiraphOutput('plot2', height = 500)),
-              tabPanel('Table', tableOutput('data_table')),
+              tabPanel('Plot', plotOutput('plot')),
+              tabPanel('Table', dataTableOutput('data_table')),
               tabPanel('Raw Data', dataTableOutput('raw_data'))
               ),
   hr(),
@@ -122,27 +121,22 @@ server = function(input, output, session){
       select(Comparison, p.adjust) %>% 
       mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
                                      ifelse(p.adjust <= 0.01, '**', 
-                                            ifelse(p.adjust <= 0.05, '*', ''))))
-      #as_tibble()
+                                            ifelse(p.adjust <= 0.05, '*', NA)))) %>%
+      as_tibble()
+    
     cp_plot = boot.cp %>% 
       ggplot(aes(y = Condition, x = Mean, color = Condition, tooltip = Mean), size = 2) +
       geom_point(aes(size = 2)) +
-      geom_errorbarh(aes(xmax = Upper, xmin = Lower, y = Condition), height = 0.25, size = 1.25) + 
+      geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Condition), height = 0.25, size = 1.25) + 
+      theme_tufte(base_size = 15) + 
       theme(axis.title = element_blank(), legend.position = 'none') +
       xlab(label = element_blank()) +
       scale_y_discrete(limits = unique(rev(boot.cp$Condition)))
     
-    g = ggplot(boot.cp, aes(y = Condition, x = Mean, color = Condition))
+    sig_table = as.tibble(cbind(boot.cp, table))
     
-    my_gg = g + geom_point_interactive(aes(tooltip = Mean), size = 2) +
-      geom_errorbarh(aes(xmax = Upper, xmin = Lower, height = 0.25)) +
-      theme_tufte() + theme(axis.title = element_blank(), legend.position = 'none') +
-      xlab(label = element_blank()) +
-      scale_y_discrete(limits = unique(rev(boot.cp$Condition)))
-
-    output$data_table = renderTable({boot.cp})
-    #output$plot = renderPlot(cp_plot)
-    output$plot2 = renderggiraph({ggiraph(code = print(my_gg))})
+    output$data_table = renderDataTable(datatable(sig_table, options = list(paging = FALSE, searching = FALSE)))
+    output$plot = renderPlot(cp_plot)
     output$raw_data = renderDataTable(datatable(cp, options = list(lengthMenu = list(c(5, 15, 25, -1), c('5', '15', '25', 'All')),
                                                                    pageLength = 15
                                                                      )))

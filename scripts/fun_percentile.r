@@ -165,9 +165,9 @@ bootanalysis = function (data = NULL, column = NULL, r = NULL, upper_conf = NULL
   severe.boot = bayesboot(severe[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
   
   boot.cp = tribble(~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
-                    'Good Condition', quantile(good.boot$V1, low_conf), mean(good.boot$V1), quantile(good.boot$V1, upper_conf), 
-                    'Moderately Degraded', quantile(moderate.boot$V1, low_conf), mean(moderate.boot$V1), quantile(moderate.boot$V1, upper_conf),
-                    'Severely Degraded', quantile(severe.boot$V1, low_conf), mean(severe.boot$V1), quantile(severe.boot$V1, upper_conf)
+                    'Good Condition', signif(quantile(good.boot$V1, low_conf), digits = 4), signif(mean(good.boot$V1), digits = 4), signif(quantile(good.boot$V1, upper_conf), digits = 4), 
+                    'Moderately Degraded', signif(quantile(moderate.boot$V1, low_conf), digits = 4), signif(mean(moderate.boot$V1), digits = 4), signif(quantile(moderate.boot$V1, upper_conf), digits = 4),
+                    'Severely Degraded', signif(quantile(severe.boot$V1, low_conf), digits = 4), signif(mean(severe.boot$V1), digits = 4), signif(quantile(severe.boot$V1, upper_conf), digits = 4)
   )
   
   return(boot.cp)
