@@ -1,18 +1,20 @@
 library(shiny)
 library(tidyverse)
 library(ggthemes)
+library(shinythemes)
 source('fun_percentile.r')
 
 cp = read_csv('../csv/Coastal_plain_cleaned.csv')
 cp_plot = read_csv('../csv/Coastal_plain_bootstrap.csv')
 
-ui = fluidPage(
+ui = fluidPage(theme = 'bootstrap-material-design.min.css',
   titlePanel('Pairwise Percentile Analysis'),
   sidebarPanel(
     helpText('Select factor, number of iterations and percentile'),
     uiOutput('choose_columns'),
-    uiOutput('iterations'),
+    uiOutput('conf_interval'),
     uiOutput('percentile'),
+    uiOutput('iterations'),
     actionButton('go', 'Calculate Percentile')
   ),
   mainPanel(plotOutput('plot'),
@@ -25,7 +27,8 @@ server = function(input, output, session){
   
   output$choose_columns = renderUI(
     selectInput('stressor', 'Stressor', 
-                choices = c('Channel Modification' = 'CM', 
+                list(
+                  'Physical Stressors' = c('Channel Modification' = 'CM', 
                             'Instream Habitat' = 'IH',
                             'Pools' = 'P',
                             'Bank Stability Left' = 'BSL',
@@ -34,8 +37,8 @@ server = function(input, output, session){
                             'Bank Vegetative Right' = 'BVR',
                             'Shading' = 'S',
                             'Riparian Zone Left' = 'RZL',
-                            'Riparian Zone Right' = 'RZR', 
-                            'Alkalinity', 'Ammonia', 'BOD20', 'BOD5', 
+                            'Riparian Zone Right' = 'RZR'),
+                  'Chemical Stressors' = c('Alkalinity', 'Ammonia', 'BOD20', 'BOD5', 
                             'Dissolved Organic Carbon' = 'DOC',
                             'Total Organic Carbon' = 'TOC', 'Chloride',
                             'Chlorophyll a' = 'Chlorophyll_a',
@@ -49,7 +52,7 @@ server = function(input, output, session){
                             'Total Phosphorus' = 'TP', 'TSS',
                             'Salinity',
                             'Air Temperature' = 'ATemp',
-                            'Water Temperature' = 'Temp', 'Turbidity'))
+                            'Water Temperature' = 'Temp', 'Turbidity')))
   )
   
   output$iterations = renderUI(
@@ -64,6 +67,11 @@ server = function(input, output, session){
     selectInput('percentile', 'Percentile',
                 choices = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
                 )
+  )
+  
+  output$conf_interval = renderUI(
+    selectInput('conf_interval', 'Confidence Interval',
+                choices = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
   )
   
   
@@ -107,8 +115,8 @@ server = function(input, output, session){
         spread(Stat, Data) %>% 
         ggplot(aes(y = Condition, x = Mean, color = Condition)) + 
         geom_point(aes(size = 1)) + 
-        geom_segment(aes(xend = Upper, x = Lower, y = Condition, yend = Condition)) + 
-        theme(axis.title = element_blank(), legend.position = 'none', panel.grid.minor = element_blank(), panel.border = element_rect(color = 'black', fill = NA), axis.text = element_text(size = 15)) +
+        geom_errorbarh(aes(xmax = Upper, xmin = Lower)) + 
+        theme(axis.title = element_blank(), legend.position = 'none', panel.grid.minor = element_blank(), panel.border = element_rect(color = 'black', fill = NA), axis.text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
         ggtitle('80% CI Bootstrap (20,000)') +
         scale_y_discrete(limits = unique(rev(cp_plot$Condition))) +
         scale_x_continuous(limits = c(min(xlow$Min), max(xlow$Max)))
