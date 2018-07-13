@@ -12,11 +12,11 @@ ui = fluidPage(
   theme = shinytheme('paper'),
   title = 'Delaware Stressor Analyis',
   tabsetPanel(type = 'tabs',
-              tabPanel('Instructions',),
+              tabPanel('Instructions', includeHTML('../Instruction.html')),
               tabPanel('Plot', plotOutput('plot')),
               tabPanel('Table', dataTableOutput('data_table')),
               tabPanel('Raw Data', dataTableOutput('raw_data')),
-              tabPanel('About', )
+              tabPanel('About', includeHTML('../About.html'))
               ),
   hr(),
   fluidRow(
