@@ -12,9 +12,11 @@ ui = fluidPage(
   theme = shinytheme('paper'),
   title = 'Delaware Stressor Analyis',
   tabsetPanel(type = 'tabs',
+              tabPanel('Instructions',),
               tabPanel('Plot', plotOutput('plot')),
               tabPanel('Table', dataTableOutput('data_table')),
-              tabPanel('Raw Data', dataTableOutput('raw_data'))
+              tabPanel('Raw Data', dataTableOutput('raw_data')),
+              tabPanel('About', )
               ),
   hr(),
   fluidRow(
@@ -37,12 +39,12 @@ server = function(input, output, session){
     selectInput('stressor', 'Stressor', 
                 list(
                   'Physical Stressors' = c('Channel Modification' = 'CM',
-                                           'BSC',
+                                           'Bottom Substrate Cover' = 'BSC',
                                            'Embedness' = 'E',
-                                           'RQ',
-                                           'FR',
-                                           'SD',
-                                           'VD',
+                                           'Riffle Quality' = 'RQ',
+                                           'Frequency of Riffles' = 'FR',
+                                           'Sediment Deposition' = 'SD',
+                                           'Velocity Depth' = 'VD',
                                            'Instream Habitat' = 'IH',
                                            'Pools' = 'P',
                                            'Bank Stability Left' = 'BSL',
@@ -52,7 +54,9 @@ server = function(input, output, session){
                                            'Shading' = 'S',
                                            'Riparian Zone Left' = 'RZL',
                                            'Riparian Zone Right' = 'RZR'),
-                  'Chemical Stressors' = c('Alkalinity', 'Ammonia', 'BOD20', 'BOD5', 
+                  'Chemical Stressors' = c('Alkalinity', 'Ammonia',
+                                           'CBOD at 20 Day' = 'BOD20', 
+                                           'CBOD at 5 Day' = 'BOD5', 
                                            'Dissolved Organic Carbon' = 'DOC',
                                            'Total Organic Carbon' = 'TOC', 'Chloride',
                                            'Chlorophyll a' = 'Chlorophyll_a',
@@ -63,7 +67,8 @@ server = function(input, output, session){
                                            'Orthophosphate' = 'OP',
                                            'Dissolved Oxygen' = 'DO',
                                            'Dissolved Oxygen Saturation' = 'DOSat', 'pH',
-                                           'Total Phosphorus' = 'TP', 'TSS',
+                                           'Total Phosphorus' = 'TP',
+                                           'Total Suspended Solids' = 'TSS',
                                            'Salinity',
                                            'Air Temperature' = 'ATemp',
                                            'Water Temperature' = 'Temp', 'Turbidity')))
@@ -105,6 +110,7 @@ server = function(input, output, session){
                  '0.9' = 0.9
     )
     
+
     upper_conf = input$conf_interval
     r = as.numeric(input$interations)
     
@@ -116,8 +122,12 @@ server = function(input, output, session){
       progress$set(value = i)
       Sys.sleep(0.5)
     }
+    
+    
     cp = combined %>% filter(Region == 'Coastal Plain')
-    if (is.null(cp[[column]])){
+    
+    # If data doesn't exist don't run percentile testing
+    if (all(is.na(cp[[column]])) == FALSE){
       dat.cp = pairwisePercentileTest(data = cp,
                                  group = 'Biotic.Classification',
                                  column = column,
@@ -133,8 +143,13 @@ server = function(input, output, session){
                                     tau = tau,
                                     r = r)
     
-    if (is.null(cp[[column]])){
-      boot.combined = bootanalysis(data = combined, column = column, r = r, upper_conf = upper_conf) %>% unite(Factor, Condition, Region, remove = FALSE)
+    # Run the analysis if both Coastal and Piedmont have the qualities
+    if (all(is.na(cp[[column]])) == FALSE){
+      boot.combined = bootanalysis(data = combined, 
+                                   column = column, r = r, 
+                                   upper_conf = upper_conf) %>% 
+        unite(Factor, Condition, Region, remove = FALSE)
+      
       table.cp = dat.cp %>% 
         select(Comparison, p.adjust) %>% 
         mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
@@ -142,6 +157,7 @@ server = function(input, output, session){
                                             ifelse(p.adjust <= 0.05, '*', NA))), 
                Region = 'Coastal Plain') %>% 
         as_tibble()
+      
       table.pied = dat.pied %>% 
         select(Comparison, p.adjust) %>% 
         mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
@@ -152,15 +168,20 @@ server = function(input, output, session){
     
       table = bind_rows(table.cp, table.pied)
   
-      sig_table = bind_cols(boot.combined, table) %>% select(-Factor, -Region1)
+      sig_table = bind_cols(boot.combined, table) %>% 
+        select(-Factor, -Region1)
       
       combined_plot = boot.combined %>% 
         ggplot(aes(y = Factor, x = Mean, shape = Condition), size = 6, color = 'black') +
         geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Factor), height = 0.25, size = 1.25) +
         geom_point(aes(color = Region, shape = Condition), size = 5.5) +
-        #theme_tufte(base_size = 15) + 
         xlab(label = column) +
-        scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 'Severely Degraded_Piedmont', 'Moderately Degraded_Coastal Plain', 'Moderately Degraded_Piedmont', 'Good Condition_Coastal Plain', 'Good Condition_Piedmont')) + 
+        scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 
+                                    'Severely Degraded_Piedmont', 
+                                    'Moderately Degraded_Coastal Plain', 
+                                    'Moderately Degraded_Piedmont', 
+                                    'Good Condition_Coastal Plain', 
+                                    'Good Condition_Piedmont')) + 
         theme(axis.title.y = element_blank(),
               axis.text.y = element_blank(), 
               axis.ticks.y = element_blank(),
@@ -172,6 +193,7 @@ server = function(input, output, session){
               legend.key = element_blank(),
               axis.text.x = element_text(size = 16)
               )
+      
     } else {
       boot.combined = bootanalysis(data = combined, column = column, r = r, upper_conf = upper_conf) %>% unite(Factor, Condition, Region, remove = FALSE)
       sig_table = dat.pied %>%
@@ -185,9 +207,13 @@ server = function(input, output, session){
         ggplot(aes(y = Factor, x = Mean, shape = Condition), size = 6, color = 'black') +
         geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Factor), height = 0.25, size = 1.25) +
         geom_point(aes(color = Region, shape = Condition), size = 5.5) +
-        #theme_tufte(base_size = 15) + 
         xlab(label = column) +
-        scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 'Severely Degraded_Piedmont', 'Moderately Degraded_Coastal Plain', 'Moderately Degraded_Piedmont', 'Good Condition_Coastal Plain', 'Good Condition_Piedmont')) + 
+        scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 
+                                    'Severely Degraded_Piedmont', 
+                                    'Moderately Degraded_Coastal Plain', 
+                                    'Moderately Degraded_Piedmont', 
+                                    'Good Condition_Coastal Plain', 
+                                    'Good Condition_Piedmont')) + 
         theme(axis.title.y = element_blank(),
               axis.text.y = element_blank(), 
               axis.ticks.y = element_blank(),
@@ -201,12 +227,20 @@ server = function(input, output, session){
         )
     }
     
-    output$data_table = renderDataTable(datatable(sig_table, options = list(paging = FALSE, searching = FALSE), rownames = FALSE))
+    output$data_table = renderDataTable(datatable(sig_table, 
+                                                  options = list(paging = FALSE, searching = FALSE), 
+                                                  rownames = FALSE))
+    
     output$plot = renderPlot(combined_plot)
-    #output$plot2 = renderPlot(pied_plot)
+    
     })
-  cleaned_combined = combined %>% select(Region, Site, Watershed, 'Biotic Classification' = Biotic.Classification, CM:Turbidity)
-  output$raw_data = renderDataTable(datatable(cleaned_combined, options = list(pageLength = 10, dom = 'ftip'), rownames = FALSE))
+  
+  cleaned_combined = combined %>% 
+    select(Region, Site, Watershed, 'Biotic Classification' = Biotic.Classification, CM:Turbidity)
+  
+  output$raw_data = renderDataTable(datatable(cleaned_combined, 
+                                              options = list(pageLength = 10, dom = 'ftip'), 
+                                              rownames = FALSE))
 }
 
 shinyApp(ui, server)

@@ -158,8 +158,10 @@ bootanalysis = function (data = NULL, column = NULL, r = NULL, upper_conf = NULL
   
   low_conf = 1 - upper_conf
   
+  cp_test = data %>% filter(Region == 'Coastal Plain')
+  
   # Filter Samples
-  if(is.null(data[[column]])){
+  if(all(is.na(cp_test[[column]])) == FALSE){
     good.cp = data %>% 
       filter(Region == 'Coastal Plain') %>% 
       filter(Biotic.Classification == 'Good Condition')
