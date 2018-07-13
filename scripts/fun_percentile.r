@@ -156,33 +156,96 @@ percentileTest = function (formula = NULL, data = NULL, x = NULL, y = NULL,
 
 bootanalysis = function (data = NULL, column = NULL, r = NULL, upper_conf = NULL){
   
-  # Filter Samples
-  good.cp = data %>% filter(Region == 'Coastal Plain') %>% filter(Biotic.Classification == 'Good Condition')
-  moderate.cp = data %>% filter(Region == 'Coastal Plain') %>% filter(Biotic.Classification == 'Moderately Degraded')
-  severe.cp = data %>% filter(Region == 'Coastal Plain') %>% filter(Biotic.Classification == 'Severely Degraded')
-  good.pied = data %>% filter(Region == 'Piedmont') %>% filter(Biotic.Classification == 'Good Condition')
-  moderate.pied = data %>% filter(Region == 'Piedmont') %>% filter(Biotic.Classification == 'Moderately Degraded')
-  severe.pied = data %>% filter(Region == 'Piedmont') %>% filter(Biotic.Classification == 'Severely Degraded')
-  
   low_conf = 1 - upper_conf
   
-  # Bootstrap samples
-  good.boot.cp = bayesboot(good.cp[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
-  moderate.boot.cp = bayesboot(moderate.cp[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
-  severe.boot.cp = bayesboot(severe.cp[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
-  
-  good.boot.pied = bayesboot(good.pied[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
-  moderate.boot.pied = bayesboot(moderate.pied[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
-  severe.boot.pied = bayesboot(severe.pied[[column]], weighted.mean, na.rm = TRUE, R = r, R2 = r, use.weights = TRUE)
-  
-  boot.combined = tribble(~'Region', ~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
-                    'Coastal Plain', 'Good Condition', signif(quantile(good.boot.cp$V1, low_conf), digits = 4), signif(mean(good.boot.cp$V1), digits = 4), signif(quantile(good.boot.cp$V1, upper_conf), digits = 4), 
-                    'Coastal Plain', 'Moderately Degraded', signif(quantile(moderate.boot.cp$V1, low_conf), digits = 4), signif(mean(moderate.boot.cp$V1), digits = 4), signif(quantile(moderate.boot.cp$V1, upper_conf), digits = 4),
-                    'Coastal Plain', 'Severely Degraded', signif(quantile(severe.boot.cp$V1, low_conf), digits = 4), signif(mean(severe.boot.cp$V1), digits = 4), signif(quantile(severe.boot.cp$V1, upper_conf), digits = 4),
-                    'Piedmont', 'Good Condition', signif(quantile(good.boot.pied$V1, low_conf), digits = 4), signif(mean(good.boot.pied$V1), digits = 4), signif(quantile(good.boot.pied$V1, upper_conf), digits = 4), 
-                    'Piedmont', 'Moderately Degraded', signif(quantile(moderate.boot.pied$V1, low_conf), digits = 4), signif(mean(moderate.boot.pied$V1), digits = 4), signif(quantile(moderate.boot.pied$V1, upper_conf), digits = 4),
-                    'Piedmont', 'Severely Degraded', signif(quantile(severe.boot.pied$V1, low_conf), digits = 4), signif(mean(severe.boot.pied$V1), digits = 4), signif(quantile(severe.boot.pied$V1, upper_conf), digits = 4)
-  )
+  # Filter Samples
+  if(is.null(data[[column]])){
+    good.cp = data %>% 
+      filter(Region == 'Coastal Plain') %>% 
+      filter(Biotic.Classification == 'Good Condition')
+    
+    moderate.cp = data %>% 
+      filter(Region == 'Coastal Plain') %>% 
+      filter(Biotic.Classification == 'Moderately Degraded')
+    
+    severe.cp = data %>% 
+      filter(Region == 'Coastal Plain') %>% 
+      filter(Biotic.Classification == 'Severely Degraded')
+    good.boot.cp = bayesboot(good.cp[[column]], 
+                             weighted.mean, na.rm = TRUE, 
+                             R = r, R2 = r, use.weights = TRUE)
+    
+    moderate.boot.cp = bayesboot(moderate.cp[[column]], 
+                                 weighted.mean, na.rm = TRUE, 
+                                 R = r, R2 = r, use.weights = TRUE)
+    
+    severe.boot.cp = bayesboot(severe.cp[[column]], 
+                               weighted.mean, na.rm = TRUE, 
+                               R = r, R2 = r, use.weights = TRUE)
+
+    good.pied = data %>% 
+      filter(Region == 'Piedmont') %>% 
+      filter(Biotic.Classification == 'Good Condition')
+    
+    moderate.pied = data %>% 
+      filter(Region == 'Piedmont') %>% 
+      filter(Biotic.Classification == 'Moderately Degraded')
+    
+    severe.pied = data %>% 
+      filter(Region == 'Piedmont') %>% 
+      filter(Biotic.Classification == 'Severely Degraded')
+
+    good.boot.pied = bayesboot(good.pied[[column]], 
+                               weighted.mean, na.rm = TRUE, 
+                               R = r, R2 = r, use.weights = TRUE)
+    
+    moderate.boot.pied = bayesboot(moderate.pied[[column]], 
+                                   weighted.mean, na.rm = TRUE, 
+                                   R = r, R2 = r, use.weights = TRUE)
+    
+    severe.boot.pied = bayesboot(severe.pied[[column]], 
+                                 weighted.mean, na.rm = TRUE, 
+                                 R = r, R2 = r, use.weights = TRUE)
+    
+    boot.combined = tribble(~'Region', ~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
+                            'Coastal Plain', 'Good Condition', signif(quantile(good.boot.cp$V1, low_conf), digits = 4), signif(mean(good.boot.cp$V1), digits = 4), signif(quantile(good.boot.cp$V1, upper_conf), digits = 4), 
+                            'Coastal Plain', 'Moderately Degraded', signif(quantile(moderate.boot.cp$V1, low_conf), digits = 4), signif(mean(moderate.boot.cp$V1), digits = 4), signif(quantile(moderate.boot.cp$V1, upper_conf), digits = 4),
+                            'Coastal Plain', 'Severely Degraded', signif(quantile(severe.boot.cp$V1, low_conf), digits = 4), signif(mean(severe.boot.cp$V1), digits = 4), signif(quantile(severe.boot.cp$V1, upper_conf), digits = 4),
+                            'Piedmont', 'Good Condition', signif(quantile(good.boot.pied$V1, low_conf), digits = 4), signif(mean(good.boot.pied$V1), digits = 4), signif(quantile(good.boot.pied$V1, upper_conf), digits = 4), 
+                            'Piedmont', 'Moderately Degraded', signif(quantile(moderate.boot.pied$V1, low_conf), digits = 4), signif(mean(moderate.boot.pied$V1), digits = 4), signif(quantile(moderate.boot.pied$V1, upper_conf), digits = 4),
+                            'Piedmont', 'Severely Degraded', signif(quantile(severe.boot.pied$V1, low_conf), digits = 4), signif(mean(severe.boot.pied$V1), digits = 4), signif(quantile(severe.boot.pied$V1, upper_conf), digits = 4)
+    )
+  } else {
+      good.pied = data %>% 
+        filter(Region == 'Piedmont') %>% 
+        filter(Biotic.Classification == 'Good Condition')
+      
+      moderate.pied = data %>% 
+        filter(Region == 'Piedmont') %>% 
+        filter(Biotic.Classification == 'Moderately Degraded')
+      
+      severe.pied = data %>% 
+        filter(Region == 'Piedmont') %>% 
+        filter(Biotic.Classification == 'Severely Degraded')
+    
+      good.boot.pied = bayesboot(good.pied[[column]], 
+                                 weighted.mean, na.rm = TRUE, 
+                                 R = r, R2 = r, use.weights = TRUE)
+      
+      moderate.boot.pied = bayesboot(moderate.pied[[column]], 
+                                     weighted.mean, na.rm = TRUE, 
+                                     R = r, R2 = r, use.weights = TRUE)
+      
+      severe.boot.pied = bayesboot(severe.pied[[column]], 
+                                   weighted.mean, na.rm = TRUE, 
+                                   R = r, R2 = r, use.weights = TRUE)
+    
+    boot.combined = tribble(~'Region', ~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
+                            'Piedmont', 'Good Condition', signif(quantile(good.boot.pied$V1, low_conf), digits = 4), signif(mean(good.boot.pied$V1), digits = 4), signif(quantile(good.boot.pied$V1, upper_conf), digits = 4), 
+                            'Piedmont', 'Moderately Degraded', signif(quantile(moderate.boot.pied$V1, low_conf), digits = 4), signif(mean(moderate.boot.pied$V1), digits = 4), signif(quantile(moderate.boot.pied$V1, upper_conf), digits = 4),
+                            'Piedmont', 'Severely Degraded', signif(quantile(severe.boot.pied$V1, low_conf), digits = 4), signif(mean(severe.boot.pied$V1), digits = 4), signif(quantile(severe.boot.pied$V1, upper_conf), digits = 4)
+    )
+  }
   
   return(boot.combined)
 }

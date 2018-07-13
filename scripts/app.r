@@ -10,7 +10,7 @@ combined = read_csv('../csv/IBI_cleaned.csv')
 
 ui = fluidPage(
   theme = shinytheme('paper'),
-  title = 'Coastal Plain Stressor Analyis',
+  title = 'Delaware Stressor Analyis',
   tabsetPanel(type = 'tabs',
               tabPanel('Plot', plotOutput('plot')),
               tabPanel('Table', dataTableOutput('data_table')),
@@ -27,7 +27,7 @@ ui = fluidPage(
            ),
     column(3,
            uiOutput('iterations'),
-           actionButton('go', 'Calculate Percentile')
+           actionButton('go', 'Calculate')
     )
   )
 )
@@ -36,7 +36,13 @@ server = function(input, output, session){
   output$choose_columns = renderUI(
     selectInput('stressor', 'Stressor', 
                 list(
-                  'Physical Stressors' = c('Channel Modification' = 'CM', 
+                  'Physical Stressors' = c('Channel Modification' = 'CM',
+                                           'BSC',
+                                           'Embedness' = 'E',
+                                           'RQ',
+                                           'FR',
+                                           'SD',
+                                           'VD',
                                            'Instream Habitat' = 'IH',
                                            'Pools' = 'P',
                                            'Bank Stability Left' = 'BSL',
@@ -111,76 +117,96 @@ server = function(input, output, session){
       Sys.sleep(0.5)
     }
     cp = combined %>% filter(Region == 'Coastal Plain')
-    dat.cp = pairwisePercentileTest(data = cp,
+    if (is.null(cp[[column]])){
+      dat.cp = pairwisePercentileTest(data = cp,
                                  group = 'Biotic.Classification',
                                  column = column,
                                  tau = tau,
                                  r = r)
+    }
     
     pied = combined %>% filter(Region == 'Piedmont')
+    
     dat.pied = pairwisePercentileTest(data = pied,
                                     group = 'Biotic.Classification',
                                     column = column,
                                     tau = tau,
                                     r = r)
     
-    boot.combined = bootanalysis(data = combined, column = column, r = r, upper_conf = upper_conf) %>% unite(Factor, Condition, Region, remove = FALSE)
-    
-    table.cp = dat.cp %>% 
-      select(Comparison, p.adjust) %>% 
-      mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
+    if (is.null(cp[[column]])){
+      boot.combined = bootanalysis(data = combined, column = column, r = r, upper_conf = upper_conf) %>% unite(Factor, Condition, Region, remove = FALSE)
+      table.cp = dat.cp %>% 
+        select(Comparison, p.adjust) %>% 
+        mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
                                      ifelse(p.adjust <= 0.01, '**', 
-                                            ifelse(p.adjust <= 0.05, '*', NA))), Region = 'Coastal Plain') %>%
-      as_tibble()
-    
-    table.pied = dat.pied %>% 
-      select(Comparison, p.adjust) %>% 
-      mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
+                                            ifelse(p.adjust <= 0.05, '*', NA))), 
+               Region = 'Coastal Plain') %>% 
+        as_tibble()
+      table.pied = dat.pied %>% 
+        select(Comparison, p.adjust) %>% 
+        mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
                                      ifelse(p.adjust <= 0.01, '**', 
-                                            ifelse(p.adjust <= 0.05, '*', NA))), Region = 'Piedmont') %>%
-      as_tibble()
+                                            ifelse(p.adjust <= 0.05, '*', NA))), 
+               Region = 'Piedmont') %>%
+        as_tibble()
     
-    table = bind_rows(table.cp, table.pied)
+      table = bind_rows(table.cp, table.pied)
+  
+      sig_table = bind_cols(boot.combined, table) %>% select(-Factor, -Region1)
+      
+      combined_plot = boot.combined %>% 
+        ggplot(aes(y = Factor, x = Mean, shape = Condition), size = 6, color = 'black') +
+        geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Factor), height = 0.25, size = 1.25) +
+        geom_point(aes(color = Region, shape = Condition), size = 5.5) +
+        #theme_tufte(base_size = 15) + 
+        xlab(label = column) +
+        scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 'Severely Degraded_Piedmont', 'Moderately Degraded_Coastal Plain', 'Moderately Degraded_Piedmont', 'Good Condition_Coastal Plain', 'Good Condition_Piedmont')) + 
+        theme(axis.title.y = element_blank(),
+              axis.text.y = element_blank(), 
+              axis.ticks.y = element_blank(),
+              panel.background = element_blank(),
+              panel.grid = element_blank(),
+              axis.line.x = element_line(color = 'black'),
+              axis.line.y = element_line(color = 'black'),
+              text = element_text(family = 'serif', size = 18),
+              legend.key = element_blank(),
+              axis.text.x = element_text(size = 16)
+              )
+    } else {
+      boot.combined = bootanalysis(data = combined, column = column, r = r, upper_conf = upper_conf) %>% unite(Factor, Condition, Region, remove = FALSE)
+      sig_table = dat.pied %>%
+        select(Comparison, p.adjust) %>% 
+        mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
+                                       ifelse(p.adjust <= 0.01, '**', 
+                                              ifelse(p.adjust <= 0.05, '*', NA)))) %>%
+        as_tibble()
+      
+      combined_plot = boot.combined %>% 
+        ggplot(aes(y = Factor, x = Mean, shape = Condition), size = 6, color = 'black') +
+        geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Factor), height = 0.25, size = 1.25) +
+        geom_point(aes(color = Region, shape = Condition), size = 5.5) +
+        #theme_tufte(base_size = 15) + 
+        xlab(label = column) +
+        scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 'Severely Degraded_Piedmont', 'Moderately Degraded_Coastal Plain', 'Moderately Degraded_Piedmont', 'Good Condition_Coastal Plain', 'Good Condition_Piedmont')) + 
+        theme(axis.title.y = element_blank(),
+              axis.text.y = element_blank(), 
+              axis.ticks.y = element_blank(),
+              panel.background = element_blank(),
+              panel.grid = element_blank(),
+              axis.line.x = element_line(color = 'black'),
+              axis.line.y = element_line(color = 'black'),
+              text = element_text(family = 'serif', size = 18),
+              legend.key = element_blank(),
+              axis.text.x = element_text(size = 16)
+        )
+    }
     
-    cp_plot = boot.combined %>% 
-      filter(Region == 'Coastal Plain') %>%
-      ggplot(aes(y = Condition, x = Mean, color = Condition, size = 2)) +
-      geom_point(aes(size = 2)) +
-      geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Condition), height = 0.25, size = 1.25) + 
-      theme_tufte(base_size = 15) + 
-      theme(axis.title = element_blank(), legend.position = 'none') +
-      xlab(label = element_blank()) +
-      scale_y_discrete(limits = unique(rev(boot.combined$Condition)))
-    
-    pied_plot = boot.combined %>% 
-      filter(Region == 'Piedmont') %>%
-      ggplot(aes(y = Condition, x = Mean, color = Condition, size = 2)) +
-      geom_point(aes(size = 2)) +
-      geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Condition), height = 0.25, size = 1.25) + 
-      theme_tufte(base_size = 15) + 
-      theme(axis.title = element_blank(), legend.position = 'none') +
-      xlab(label = element_blank()) +
-      scale_y_discrete(limits = unique(rev(boot.combined$Condition)))
-    
-    sig_table = bind_cols(boot.combined, table) %>% select(-Factor, -Region1)
-    
-    combined_plot = boot.combined %>% 
-      ggplot(aes(y = Factor, x = Mean, color = Region, shape = Condition), size = 2) +
-      geom_point(size = 3) +
-      geom_errorbarh(aes(xmax = `Upper CI`, xmin = `Lower CI`, y = Factor), height = 0.25, size = 1.25) + 
-      theme_tufte(base_size = 15) + 
-      xlab(label = element_blank()) +
-      scale_y_discrete(limits = c('Severely Degraded_Coastal Plain', 'Severely Degraded_Piedmont', 'Moderately Degraded_Coastal Plain', 'Moderately Degraded_Piedmont', 'Good Condition_Coastal Plain', 'Good Condition_Piedmont')) + 
-      theme(axis.title = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
-    
-    output$data_table = renderDataTable(datatable(sig_table, options = list(paging = FALSE, searching = FALSE)))
+    output$data_table = renderDataTable(datatable(sig_table, options = list(paging = FALSE, searching = FALSE), rownames = FALSE))
     output$plot = renderPlot(combined_plot)
     #output$plot2 = renderPlot(pied_plot)
-    output$raw_data = renderDataTable(datatable(cp, options = list(lengthMenu = list(c(5, 15, 25, -1), c('5', '15', '25', 'All')),
-                                                                   pageLength = 15
-                                                                     )))
-    
     })
+  cleaned_combined = combined %>% select(Region, Site, Watershed, 'Biotic Classification' = Biotic.Classification, CM:Turbidity)
+  output$raw_data = renderDataTable(datatable(cleaned_combined, options = list(pageLength = 10, dom = 'ftip'), rownames = FALSE))
 }
 
 shinyApp(ui, server)
