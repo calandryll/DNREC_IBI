@@ -356,6 +356,7 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                         'Risk_controls' = NA) %>% 
         mutate('Atrributable Risk' = NA)
     }
+    
   } else {
     cp.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Coastal Plain' & Comparison == 'Good Condition - Severely Degraded')
     pied.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Piedmont' & Comparison == 'Good Condition - Severely Degraded')
@@ -374,6 +375,12 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                         'Risk_cases' = cp.ratio[1, 1]/cp.ratio[3, 1],
                         'Risk_controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
         mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+    } else {
+      cp_ratio = tibble('Region' = 'Coastal Plain',
+                        'Odds Ratio' = NA,
+                        'Risk_cases' = NA,
+                        'Risk_controls' = NA) %>% 
+        mutate('Atrributable Risk' = NA)
     }
     
     if(is.tibble(pied.sig) && nrow(pied.sig) > 0){
@@ -390,6 +397,12 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                           'Risk_cases' = pied.ratio[1, 1]/pied.ratio[3, 1],
                           'Risk_controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
         mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+    } else {
+      pied_ratio = tibble('Region' = 'Piedmont',
+                          'Odds Ratio' = NA,
+                          'Risk_cases' = NA,
+                          'Risk_controls' = NA) %>% 
+        mutate('Atrributable Risk' = NA)
     }
   }
   
