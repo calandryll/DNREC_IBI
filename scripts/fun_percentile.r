@@ -252,6 +252,154 @@ bootanalysis = function (data = NULL, column = NULL, r = NULL, upper_conf = NULL
   return(boot.combined)
 }
 
+ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL, tau = NULL){
+
+  # Filter based on region
+  cp = data %>% filter(Region == 'Coastal Plain')
+  
+  pied = data %>% filter(Region == 'Piedmont')
+  
+  # Run percentile tests
+  dat.pied = pairwisePercentileTest(data = pied,
+                                    group = 'Biotic.Classification',
+                                    column = column,
+                                    tau = tau,
+                                    r = r)
+  
+  table.pied = dat.pied %>% 
+    select(Comparison, p.adjust) %>% 
+    mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
+                                   ifelse(p.adjust <= 0.01, '**', 
+                                          ifelse(p.adjust <= 0.05, '*', NA))), 
+           Region = 'Piedmont') %>%
+    as_tibble()
+  
+  if (!all(is.na(cp[[column]])))
+    {
+      dat.cp = pairwisePercentileTest(data = cp,
+                                    group = 'Biotic.Classification',
+                                    column = column,
+                                    tau = tau,
+                                    r = r)
+      
+      table.cp = dat.cp %>% 
+        select(Comparison, p.adjust) %>% 
+        mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
+                                       ifelse(p.adjust <= 0.01, '**', 
+                                              ifelse(p.adjust <= 0.05, '*', NA))), 
+               Region = 'Coastal Plain') %>% 
+        as_tibble()
+      
+      table = bind_rows(table.cp, table.pied)
+    } else {
+      table = table.pied
+    }
+  
+
+  
+  # Run bootstrapping
+  ibi.boot = bootanalysis(data, column, r, 0.8) %>% 
+    unite(Factor, Condition, Region, remove = FALSE)
+  
+
+  
+  # Create combined significance table
+  sig_table = bind_cols(ibi.boot, table) %>% 
+    select(-Factor, -Region1)
+  
+  
+  # If tau is lower than 0.5 the beyond samples are those that are of lower than the mean
+  # for instance low DO is a potential stressor so beyond that threshold will be lower than
+  # the 
+  if(tau <= 0.5){
+    cp.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Coastal Plain' & Comparison == 'Good Condition - Severely Degraded')
+    pied.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Piedmont' & Comparison == 'Good Condition - Severely Degraded')
+    
+    if(is.tibble(cp.sig) && nrow(cp.sig) > 0){
+      cp.ratio = cp %>% 
+        mutate(Threshold = ifelse(cp[[column]] > cp.sig$Mean, 'Within', 'Beyond'), 
+               Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
+        select(Classification, Threshold) %>%
+        xtabs(~Threshold + Classification, data = .) %>%
+        addmargins()
+      
+      cp_ratio = tibble('Region' = 'Coastal Plain',
+                        'Odds Ratio' = (cp.ratio[1, 1] * cp.ratio[2, 2])/(cp.ratio[1, 2] * cp.ratio[2, 1]),
+                        'Risk_cases' = cp.ratio[1, 1]/cp.ratio[3, 1],
+                        'Risk_controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
+        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+    } else {
+      cp_ratio = tibble('Region' = 'Coastal Plain',
+                        'Odds Ratio' = NA,
+                        'Risk_cases' = NA,
+                        'Risk_controls' = NA) %>% 
+        mutate('Atrributable Risk' = NA)
+    }
+    
+    if(is.tibble(pied.sig) && nrow(pied.sig) > 0){
+      pied.ratio = pied %>% 
+        mutate(Threshold = ifelse(pied[[column]] > pied.sig$Mean, 'Within', 'Beyond'), 
+               Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
+        select(Classification, Threshold) %>%
+        xtabs(~Threshold + Classification, data = .) %>%
+        addmargins()
+      
+      pied_ratio = tibble('Region' = 'Piedmont',
+                        'Odds Ratio' = (pied.ratio[1, 1] * pied.ratio[2, 2])/(pied.ratio[1, 2] * pied.ratio[2, 1]),
+                        'Risk_cases' = pied.ratio[1, 1]/pied.ratio[3, 1],
+                        'Risk_controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
+        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+    } else {
+      pied_ratio = tibble('Region' = 'Piedmont',
+                        'Odds Ratio' = NA,
+                        'Risk_cases' = NA,
+                        'Risk_controls' = NA) %>% 
+        mutate('Atrributable Risk' = NA)
+    }
+  } else {
+    cp.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Coastal Plain' & Comparison == 'Good Condition - Severely Degraded')
+    pied.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Piedmont' & Comparison == 'Good Condition - Severely Degraded')
+    
+    if(is.tibble(cp.sig) && nrow(cp.sig) > 0){
+      cp.ratio = cp %>% 
+        mutate(Threshold = ifelse(cp[[column]] <= cp.sig$Mean, 'Within', 'Beyond'), 
+               Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
+        select(Classification, Threshold) %>%
+        xtabs(~Threshold + Classification, data = .) %>%
+        addmargins()
+    
+      cp_ratio = tibble('Region' = 'Coastal Plain',
+                        'Stressor' = column,
+                        'Odds Ratio' = (cp.ratio[1, 1] * cp.ratio[2, 2])/(cp.ratio[1, 2] * cp.ratio[2, 1]),
+                        'Risk_cases' = cp.ratio[1, 1]/cp.ratio[3, 1],
+                        'Risk_controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
+        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+    }
+    
+    if(is.tibble(pied.sig) && nrow(pied.sig) > 0){
+      pied.ratio = pied %>% 
+        mutate(Threshold = ifelse(pied[[column]] <= pied.sig$Mean, 'Within', 'Beyond'), 
+               Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
+        select(Classification, Threshold) %>%
+        xtabs(~Threshold + Classification, data = .) %>%
+        addmargins()
+      
+      pied_ratio = tibble('Region' = 'Piedmont',
+                          'Stressor' = column,
+                          'Odds Ratio' = (pied.ratio[1, 1] * pied.ratio[2, 2])/(pied.ratio[1, 2] * pied.ratio[2, 1]),
+                          'Risk_cases' = pied.ratio[1, 1]/pied.ratio[3, 1],
+                          'Risk_controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
+        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+    }
+  }
+  
+  ibi_ratio = bind_rows(cp_ratio, pied_ratio)
+  
+  ibi_list = lst(Boot = ibi.boot,
+                 Sig = sig_table,
+                 Ratio = ibi_ratio)
+  return(ibi_list)
+}
 
 # pairwisePercentileTest2 = function (column = NULL, group = NULL, data = NULL, tau = 0.1, r = 10000, digits = 4) 
 # {
