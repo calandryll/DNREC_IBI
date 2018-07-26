@@ -298,7 +298,10 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
 
   
   # Run bootstrapping
-  ibi.boot = bootanalysis(data, column, r, 0.8) %>% 
+  ibi.boot = bootanalysis(data = data, 
+                          column = column, 
+                          r = r,
+                          upper_conf = upper_conf) %>% 
     unite(Factor, Condition, Region, remove = FALSE)
   
 
@@ -312,8 +315,8 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
   # for instance low DO is a potential stressor so beyond that threshold will be lower than
   # the 
   if(tau <= 0.5){
-    cp.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Coastal Plain' & Comparison == 'Good Condition - Severely Degraded')
-    pied.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Piedmont' & Comparison == 'Good Condition - Severely Degraded')
+    cp.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Coastal Plain') %>% filter(Comparison == 'Good Condition - Moderately Degraded' | Comparison == 'Good Condition - Severely Degraded')
+    pied.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Piedmont') %>% filter(Comparison == 'Good Condition - Moderately Degraded' | Comparison == 'Good Condition - Severely Degraded')
     
     if(is.tibble(cp.sig) && nrow(cp.sig) > 0){
       cp.ratio = cp %>% 
@@ -329,6 +332,8 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                         'Risk_controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
         mutate('Atrributable Risk' = Risk_cases - Risk_controls)
     } else {
+      cp.ratio = tibble('Cases' = c(0,0),
+                          'Controls' = c(0,0))
       cp_ratio = tibble('Region' = 'Coastal Plain',
                         'Odds Ratio' = NA,
                         'Risk_cases' = NA,
@@ -350,6 +355,8 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                         'Risk_controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
         mutate('Atrributable Risk' = Risk_cases - Risk_controls)
     } else {
+      pied.ratio = tibble('Cases' = c(0,0),
+                          'Controls' = c(0,0))
       pied_ratio = tibble('Region' = 'Piedmont',
                         'Odds Ratio' = NA,
                         'Risk_cases' = NA,
@@ -410,7 +417,9 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
   
   ibi_list = lst(Boot = ibi.boot,
                  Sig = sig_table,
-                 Ratio = ibi_ratio)
+                 Ratio = ibi_ratio,
+                 CP_Ratio_Table = cp.ratio,
+                 Pied_Ratio_Table = pied.ratio)
   return(ibi_list)
 }
 
