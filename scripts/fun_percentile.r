@@ -320,7 +320,7 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
     
     if(is.tibble(cp.sig) && nrow(cp.sig) > 0){
       cp.ratio = cp %>% 
-        mutate(Threshold = ifelse(cp[[column]] > cp.sig$Mean, 'Within', 'Beyond'), 
+        mutate(Threshold = ifelse(cp[[column]] > cp.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
@@ -328,22 +328,22 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
       
       cp_ratio = tibble('Region' = 'Coastal Plain',
                         'Odds Ratio' = (cp.ratio[1, 1] * cp.ratio[2, 2])/(cp.ratio[1, 2] * cp.ratio[2, 1]),
-                        'Risk_cases' = cp.ratio[1, 1]/cp.ratio[3, 1],
-                        'Risk_controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
-        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+                        'Risk Cases' = cp.ratio[1, 1]/cp.ratio[3, 1],
+                        'Risk Controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
+        mutate('Attributable Risk' = `Risk Cases` - `Risk Controls`)
     } else {
-      cp.ratio = tibble('Cases' = c(0,0),
-                          'Controls' = c(0,0))
+      cp.ratio = tibble('Cases' = c(NA, NA),
+                          'Controls' = c(NA, NA))
       cp_ratio = tibble('Region' = 'Coastal Plain',
                         'Odds Ratio' = NA,
-                        'Risk_cases' = NA,
-                        'Risk_controls' = NA) %>% 
-        mutate('Atrributable Risk' = NA)
+                        'Risk Cases' = NA,
+                        'Risk Controls' = NA) %>% 
+        mutate('Attributable Risk' = NA)
     }
     
     if(is.tibble(pied.sig) && nrow(pied.sig) > 0){
       pied.ratio = pied %>% 
-        mutate(Threshold = ifelse(pied[[column]] > pied.sig$Mean, 'Within', 'Beyond'), 
+        mutate(Threshold = ifelse(pied[[column]] > pied.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
@@ -351,17 +351,17 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
       
       pied_ratio = tibble('Region' = 'Piedmont',
                         'Odds Ratio' = (pied.ratio[1, 1] * pied.ratio[2, 2])/(pied.ratio[1, 2] * pied.ratio[2, 1]),
-                        'Risk_cases' = pied.ratio[1, 1]/pied.ratio[3, 1],
-                        'Risk_controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
-        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+                        'Risk Cases' = pied.ratio[1, 1]/pied.ratio[3, 1],
+                        'Risk Controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
+        mutate('Attributable Risk' = `Risk Cases` - `Risk Controls`)
     } else {
-      pied.ratio = tibble('Cases' = c(0,0),
-                          'Controls' = c(0,0))
+      pied.ratio = tibble('Cases' = c(NA, NA),
+                          'Controls' = c(NA, NA))
       pied_ratio = tibble('Region' = 'Piedmont',
                         'Odds Ratio' = NA,
-                        'Risk_cases' = NA,
-                        'Risk_controls' = NA) %>% 
-        mutate('Atrributable Risk' = NA)
+                        'Risk Cases' = NA,
+                        'Risk Controls' = NA) %>% 
+        mutate('Attributable Risk' = NA)
     }
     
   } else {
@@ -370,53 +370,57 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
     
     if(is.tibble(cp.sig) && nrow(cp.sig) > 0){
       cp.ratio = cp %>% 
-        mutate(Threshold = ifelse(cp[[column]] <= cp.sig$Mean, 'Within', 'Beyond'), 
+        mutate(Threshold = ifelse(cp[[column]] <= cp.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
         addmargins()
     
       cp_ratio = tibble('Region' = 'Coastal Plain',
-                        'Stressor' = column,
                         'Odds Ratio' = (cp.ratio[1, 1] * cp.ratio[2, 2])/(cp.ratio[1, 2] * cp.ratio[2, 1]),
-                        'Risk_cases' = cp.ratio[1, 1]/cp.ratio[3, 1],
-                        'Risk_controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
-        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+                        'Risk Cases' = cp.ratio[1, 1]/cp.ratio[3, 1],
+                        'Risk Controls' = cp.ratio[1, 2]/cp.ratio[3, 2]) %>% 
+        mutate('Attributable Risk' = `Risk Cases` - `Risk Controls`)
     } else {
+      cp.ratio = tibble('Cases' = c(NA, NA),
+                        'Controls' = c(NA, NA))
       cp_ratio = tibble('Region' = 'Coastal Plain',
                         'Odds Ratio' = NA,
-                        'Risk_cases' = NA,
-                        'Risk_controls' = NA) %>% 
+                        'Risk Cases' = NA,
+                        'Risk Controls' = NA) %>% 
         mutate('Atrributable Risk' = NA)
     }
     
     if(is.tibble(pied.sig) && nrow(pied.sig) > 0){
       pied.ratio = pied %>% 
-        mutate(Threshold = ifelse(pied[[column]] <= pied.sig$Mean, 'Within', 'Beyond'), 
+        mutate(Threshold = ifelse(pied[[column]] <= pied.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
         addmargins()
       
       pied_ratio = tibble('Region' = 'Piedmont',
-                          'Stressor' = column,
                           'Odds Ratio' = (pied.ratio[1, 1] * pied.ratio[2, 2])/(pied.ratio[1, 2] * pied.ratio[2, 1]),
-                          'Risk_cases' = pied.ratio[1, 1]/pied.ratio[3, 1],
-                          'Risk_controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
-        mutate('Atrributable Risk' = Risk_cases - Risk_controls)
+                          'Risk Cases' = pied.ratio[1, 1]/pied.ratio[3, 1],
+                          'Risk Controls' = pied.ratio[1, 2]/pied.ratio[3, 2]) %>% 
+        mutate('Attributable Risk' = `Risk Cases` - `Risk Controls`)
     } else {
+      pied.ratio = tibble('Cases' = c(NA, NA),
+                        'Controls' = c(NA, NA))
       pied_ratio = tibble('Region' = 'Piedmont',
                           'Odds Ratio' = NA,
-                          'Risk_cases' = NA,
-                          'Risk_controls' = NA) %>% 
+                          'Risk Cases' = NA,
+                          'Risk Controls' = NA) %>% 
         mutate('Atrributable Risk' = NA)
     }
   }
   
   ibi_ratio = bind_rows(cp_ratio, pied_ratio)
   
+  table_sig = table %>% select(Region, Comparison, 'Adjusted p-value' = p.adjust, `Significant?`)
+  
   ibi_list = lst(Boot = ibi.boot,
-                 Sig = sig_table,
+                 Sig = table_sig,
                  Ratio = ibi_ratio,
                  CP_Ratio_Table = cp.ratio,
                  Pied_Ratio_Table = pied.ratio)

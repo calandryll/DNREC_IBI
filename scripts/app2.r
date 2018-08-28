@@ -1,9 +1,10 @@
 library(shiny)
 library(shinythemes)
 library(tidyverse)
-library(bayesboot)
 library(DT)
 library(ggthemes)
+library(knitr)
+library(kableExtra)
 source('fun_percentile.r')
 
 combined = read_csv('../csv/IBI_cleaned.csv')
@@ -15,7 +16,7 @@ ui = fluidPage(
               tabPanel('Instructions', includeHTML('../Instruction.html')),
               tabPanel('Plot', plotOutput('plot')),
               tabPanel('Data Table', dataTableOutput('sig_table')),
-              tabPanel('Ratio Analysis', dataTableOutput('ratio_table')),
+              tabPanel('Ratio Analysis', dataTableOutput('ratio_table'), tableOutput('cp_ratio'), tableOutput('pied_ratio')),
               tabPanel('Raw Data', dataTableOutput('raw_data')),
               tabPanel('About', includeHTML('../About.html'))
   ),
@@ -155,10 +156,28 @@ server = function(input, output, session){
     
     output$sig_table = renderDataTable(datatable(ibi.combined$Sig, 
                                                   options = list(paging = FALSE, searching = FALSE), 
-                                                  rownames = FALSE))
-    output$ratio_table = renderDataTable(datatable(ibi.combined$Ratio, 
-                                                   options = list(paging = FALSE, searching = FALSE), 
-                                                   rownames = FALSE))
+                                                  rownames = FALSE) %>%
+                                         formatRound(columns = 'Adjusted p-value', digits = 3))
+    if(!all(is.na(ibi.combined$Ratio$`Odds Ratio`))){
+      output$ratio_table = renderDataTable(datatable(ibi.combined$Ratio, 
+                                                     options = list(paging = FALSE, searching = FALSE), 
+                                                     rownames = FALSE) %>%
+                                             formatRound(columns = c('Odds Ratio', 
+                                                                     'Risk Cases', 'Risk Controls', 
+                                                                     'Attributable Risk'), digits = 3))
+    }
+    if(!all(is.na(ibi.combined$CP_Ratio_Table))){
+      output$cp_ratio = renderText(kable(ibi.combined$CP_Ratio_Table, row.names = TRUE, 
+                              align = c('c', 'c', 'c'), caption = 'Coastal Plain Contingency Table',
+                              format = 'html') %>% 
+                                kable_styling(bootstrap_options = c('striped', 'hover', 'responsive')))
+    }
+    if(!all(is.na(ibi.combined$Pied_Ratio_Table))){
+      output$pied_ratio = renderText(kable(ibi.combined$Pied_Ratio_Table, row.names = TRUE, 
+                                align = c('c', 'c', 'c'), caption = 'Piedmont Contingency Table',
+                                format = 'html') %>% 
+                                  kable_styling(bootstrap_options = c('striped', 'hover', 'responsive')))
+    }
     output$plot = renderPlot(combined_plot)
     
   })
