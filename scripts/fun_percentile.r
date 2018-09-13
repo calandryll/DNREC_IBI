@@ -157,98 +157,83 @@ percentileTest = function (formula = NULL, data = NULL, x = NULL, y = NULL,
 bootanalysis = function (data = NULL, column = NULL, r = NULL, upper_conf = NULL){
   
   low_conf = 1 - upper_conf
-  
-  cp_test = data %>% filter(Region == 'Coastal Plain')
-  
+
   # Filter Samples
-  if(all(is.na(cp_test[[column]])) == FALSE){
-    good.cp = data %>% 
-      filter(Region == 'Coastal Plain') %>% 
-      filter(Biotic.Classification == 'Good Condition')
-    
-    moderate.cp = data %>% 
-      filter(Region == 'Coastal Plain') %>% 
-      filter(Biotic.Classification == 'Moderately Degraded')
-    
-    severe.cp = data %>% 
-      filter(Region == 'Coastal Plain') %>% 
-      filter(Biotic.Classification == 'Severely Degraded')
+  good.cp = data %>% 
+    filter(Region == 'Coastal Plain') %>% 
+    filter(Biotic.Classification == 'Good Condition')
+  
+  moderate.cp = data %>% 
+    filter(Region == 'Coastal Plain') %>% 
+    filter(Biotic.Classification == 'Moderately Degraded')
+  
+  severe.cp = data %>% 
+    filter(Region == 'Coastal Plain') %>% 
+    filter(Biotic.Classification == 'Severely Degraded')
+  
+  if (!all(is.na(good.cp[[column]]))){
     good.boot.cp = bayesboot(good.cp[[column]], 
-                             weighted.mean, na.rm = TRUE, 
-                             R = r, R2 = r, use.weights = TRUE)
+                              weighted.mean, na.rm = TRUE, 
+                              R = r, R2 = r, use.weights = TRUE)
     
     moderate.boot.cp = bayesboot(moderate.cp[[column]], 
-                                 weighted.mean, na.rm = TRUE, 
-                                 R = r, R2 = r, use.weights = TRUE)
+                                  weighted.mean, na.rm = TRUE, 
+                                  R = r, R2 = r, use.weights = TRUE)
     
     severe.boot.cp = bayesboot(severe.cp[[column]], 
-                               weighted.mean, na.rm = TRUE, 
-                               R = r, R2 = r, use.weights = TRUE)
+                                weighted.mean, na.rm = TRUE, 
+                                R = r, R2 = r, use.weights = TRUE)
+  }
 
-    good.pied = data %>% 
-      filter(Region == 'Piedmont') %>% 
-      filter(Biotic.Classification == 'Good Condition')
-    
-    moderate.pied = data %>% 
-      filter(Region == 'Piedmont') %>% 
-      filter(Biotic.Classification == 'Moderately Degraded')
-    
-    severe.pied = data %>% 
-      filter(Region == 'Piedmont') %>% 
-      filter(Biotic.Classification == 'Severely Degraded')
+  good.pied = data %>% 
+    filter(Region == 'Piedmont') %>% 
+    filter(Biotic.Classification == 'Good Condition')
+  
+  moderate.pied = data %>% 
+    filter(Region == 'Piedmont') %>% 
+    filter(Biotic.Classification == 'Moderately Degraded')
+  
+  severe.pied = data %>% 
+    filter(Region == 'Piedmont') %>% 
+    filter(Biotic.Classification == 'Severely Degraded')
 
+  if (!all(is.na(good.pied[[column]]))){
     good.boot.pied = bayesboot(good.pied[[column]], 
-                               weighted.mean, na.rm = TRUE, 
-                               R = r, R2 = r, use.weights = TRUE)
+                                weighted.mean, na.rm = TRUE, 
+                                R = r, R2 = r, use.weights = TRUE)
     
     moderate.boot.pied = bayesboot(moderate.pied[[column]], 
-                                   weighted.mean, na.rm = TRUE, 
-                                   R = r, R2 = r, use.weights = TRUE)
+                                    weighted.mean, na.rm = TRUE, 
+                                    R = r, R2 = r, use.weights = TRUE)
     
     severe.boot.pied = bayesboot(severe.pied[[column]], 
-                                 weighted.mean, na.rm = TRUE, 
-                                 R = r, R2 = r, use.weights = TRUE)
-    
-    boot.combined = tribble(~'Region', ~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
-                            'Coastal Plain', 'Good Condition', signif(quantile(good.boot.cp$V1, low_conf), digits = 4), signif(mean(good.boot.cp$V1), digits = 4), signif(quantile(good.boot.cp$V1, upper_conf), digits = 4), 
-                            'Coastal Plain', 'Moderately Degraded', signif(quantile(moderate.boot.cp$V1, low_conf), digits = 4), signif(mean(moderate.boot.cp$V1), digits = 4), signif(quantile(moderate.boot.cp$V1, upper_conf), digits = 4),
-                            'Coastal Plain', 'Severely Degraded', signif(quantile(severe.boot.cp$V1, low_conf), digits = 4), signif(mean(severe.boot.cp$V1), digits = 4), signif(quantile(severe.boot.cp$V1, upper_conf), digits = 4),
-                            'Piedmont', 'Good Condition', signif(quantile(good.boot.pied$V1, low_conf), digits = 4), signif(mean(good.boot.pied$V1), digits = 4), signif(quantile(good.boot.pied$V1, upper_conf), digits = 4), 
-                            'Piedmont', 'Moderately Degraded', signif(quantile(moderate.boot.pied$V1, low_conf), digits = 4), signif(mean(moderate.boot.pied$V1), digits = 4), signif(quantile(moderate.boot.pied$V1, upper_conf), digits = 4),
-                            'Piedmont', 'Severely Degraded', signif(quantile(severe.boot.pied$V1, low_conf), digits = 4), signif(mean(severe.boot.pied$V1), digits = 4), signif(quantile(severe.boot.pied$V1, upper_conf), digits = 4)
-    )
-  } else {
-      good.pied = data %>% 
-        filter(Region == 'Piedmont') %>% 
-        filter(Biotic.Classification == 'Good Condition')
-      
-      moderate.pied = data %>% 
-        filter(Region == 'Piedmont') %>% 
-        filter(Biotic.Classification == 'Moderately Degraded')
-      
-      severe.pied = data %>% 
-        filter(Region == 'Piedmont') %>% 
-        filter(Biotic.Classification == 'Severely Degraded')
-    
-      good.boot.pied = bayesboot(good.pied[[column]], 
-                                 weighted.mean, na.rm = TRUE, 
-                                 R = r, R2 = r, use.weights = TRUE)
-      
-      moderate.boot.pied = bayesboot(moderate.pied[[column]], 
-                                     weighted.mean, na.rm = TRUE, 
-                                     R = r, R2 = r, use.weights = TRUE)
-      
-      severe.boot.pied = bayesboot(severe.pied[[column]], 
-                                   weighted.mean, na.rm = TRUE, 
-                                   R = r, R2 = r, use.weights = TRUE)
-    
+                                  weighted.mean, na.rm = TRUE, 
+                                  R = r, R2 = r, use.weights = TRUE)
+  }
+  
+  if (!all(is.na(good.cp[[column]])) & !all(is.na(good.pied[[column]]))){
+      boot.combined = tribble(~'Region', ~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
+                        'Coastal Plain', 'Good Condition', signif(quantile(good.boot.cp$V1, low_conf), digits = 4), signif(mean(good.boot.cp$V1), digits = 4), signif(quantile(good.boot.cp$V1, upper_conf), digits = 4), 
+                        'Coastal Plain', 'Moderately Degraded', signif(quantile(moderate.boot.cp$V1, low_conf), digits = 4), signif(mean(moderate.boot.cp$V1), digits = 4), signif(quantile(moderate.boot.cp$V1, upper_conf), digits = 4),
+                        'Coastal Plain', 'Severely Degraded', signif(quantile(severe.boot.cp$V1, low_conf), digits = 4), signif(mean(severe.boot.cp$V1), digits = 4), signif(quantile(severe.boot.cp$V1, upper_conf), digits = 4),
+                        'Piedmont', 'Good Condition', signif(quantile(good.boot.pied$V1, low_conf), digits = 4), signif(mean(good.boot.pied$V1), digits = 4), signif(quantile(good.boot.pied$V1, upper_conf), digits = 4), 
+                        'Piedmont', 'Moderately Degraded', signif(quantile(moderate.boot.pied$V1, low_conf), digits = 4), signif(mean(moderate.boot.pied$V1), digits = 4), signif(quantile(moderate.boot.pied$V1, upper_conf), digits = 4),
+                        'Piedmont', 'Severely Degraded', signif(quantile(severe.boot.pied$V1, low_conf), digits = 4), signif(mean(severe.boot.pied$V1), digits = 4), signif(quantile(severe.boot.pied$V1, upper_conf), digits = 4)
+      )
+  } else if(!all(is.na(good.cp[[column]]))){
+      boot.combined = tribble(~'Region', ~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
+                              'Coastal Plain', 'Good Condition', signif(quantile(good.boot.cp$V1, low_conf), digits = 4), signif(mean(good.boot.cp$V1), digits = 4), signif(quantile(good.boot.cp$V1, upper_conf), digits = 4), 
+                              'Coastal Plain', 'Moderately Degraded', signif(quantile(moderate.boot.cp$V1, low_conf), digits = 4), signif(mean(moderate.boot.cp$V1), digits = 4), signif(quantile(moderate.boot.cp$V1, upper_conf), digits = 4),
+                              'Coastal Plain', 'Severely Degraded', signif(quantile(severe.boot.cp$V1, low_conf), digits = 4), signif(mean(severe.boot.cp$V1), digits = 4), signif(quantile(severe.boot.cp$V1, upper_conf), digits = 4)
+      )
+  } else if (!all(is.na(good.pied[[column]]))){
     boot.combined = tribble(~'Region', ~'Condition', ~'Lower CI', ~'Mean',  ~'Upper CI', 
                             'Piedmont', 'Good Condition', signif(quantile(good.boot.pied$V1, low_conf), digits = 4), signif(mean(good.boot.pied$V1), digits = 4), signif(quantile(good.boot.pied$V1, upper_conf), digits = 4), 
                             'Piedmont', 'Moderately Degraded', signif(quantile(moderate.boot.pied$V1, low_conf), digits = 4), signif(mean(moderate.boot.pied$V1), digits = 4), signif(quantile(moderate.boot.pied$V1, upper_conf), digits = 4),
                             'Piedmont', 'Severely Degraded', signif(quantile(severe.boot.pied$V1, low_conf), digits = 4), signif(mean(severe.boot.pied$V1), digits = 4), signif(quantile(severe.boot.pied$V1, upper_conf), digits = 4)
     )
   }
-  
+
   return(boot.combined)
 }
 
@@ -260,22 +245,29 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
   pied = data %>% filter(Region == 'Piedmont')
   
   # Run percentile tests
-  dat.pied = pairwisePercentileTest(data = pied,
-                                    group = 'Biotic.Classification',
-                                    column = column,
-                                    tau = tau,
-                                    r = r)
-  
-  table.pied = dat.pied %>% 
-    select(Comparison, p.adjust) %>% 
-    mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
-                                   ifelse(p.adjust <= 0.01, '**', 
-                                          ifelse(p.adjust <= 0.05, '*', NA))), 
-           Region = 'Piedmont') %>%
-    as_tibble()
-  
-  if (!all(is.na(cp[[column]])))
-    {
+
+  if (!all(is.na(pied[[column]]))){
+    dat.pied = pairwisePercentileTest(data = pied,
+                                  group = 'Biotic.Classification',
+                                  column = column,
+                                  tau = tau,
+                                  r = r)
+
+    table.pied = dat.pied %>% 
+      select(Comparison, p.adjust) %>% 
+      mutate('Significant?' = ifelse(p.adjust <= 0.001, '***', 
+                                    ifelse(p.adjust <= 0.01, '**', 
+                                            ifelse(p.adjust <= 0.05, '*', NA))), 
+            Region = 'Piedmont') %>%
+      as_tibble()
+  } else {
+    table.pied = tibble('Comparison' = NA,
+                        'p.adjust' = NA,
+                        'Significant?' = NA,
+                        'Region' = 'Piedmont')
+  }
+
+  if (!all(is.na(cp[[column]]))) {
       dat.cp = pairwisePercentileTest(data = cp,
                                     group = 'Biotic.Classification',
                                     column = column,
@@ -289,14 +281,15 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                                               ifelse(p.adjust <= 0.05, '*', NA))), 
                Region = 'Coastal Plain') %>% 
         as_tibble()
-      
-      table = bind_rows(table.cp, table.pied)
     } else {
-      table = table.pied
+      table.cp = tibble('Comparison' = NA,
+                          'p.adjust' = NA,
+                          'Significant?' = NA,
+                          'Region' = 'Coastal Plain')
     }
-  
 
-  
+  table = bind_rows(table.cp, table.pied) %>% filter(!is.na(Comparison))
+
   # Run bootstrapping
   ibi.boot = bootanalysis(data = data, 
                           column = column, 
@@ -310,17 +303,31 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
   sig_table = bind_cols(ibi.boot, table) %>% 
     select(-Factor, -Region1)
   
+  cp.mean = ibi.boot %>% 
+    filter(Region == 'Coastal Plain', Condition == 'Good Condition') %>% 
+    select(Mean)
+  
+  pied.mean = ibi.boot %>% 
+    filter(Region == 'Piedmont', Condition == 'Good Condition') %>% 
+    select(Mean)
+  
+  cp.sig = sig_table %>% 
+    filter(!is.na(`Significant?`)) %>% 
+    filter(Region == 'Coastal Plain') %>% 
+    filter(Comparison == 'Good Condition - Moderately Degraded' | Comparison == 'Good Condition - Severely Degraded')
+  
+  pied.sig = sig_table %>% 
+    filter(!is.na(`Significant?`)) %>% 
+    filter(Region == 'Piedmont') %>% 
+    filter(Comparison == 'Good Condition - Moderately Degraded' | Comparison == 'Good Condition - Severely Degraded')
   
   # If tau is lower than 0.5 the beyond samples are those that are of lower than the mean
   # for instance low DO is a potential stressor so beyond that threshold will be lower than
   # the 
   if(tau <= 0.5){
-    cp.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Coastal Plain') %>% filter(Comparison == 'Good Condition - Moderately Degraded' | Comparison == 'Good Condition - Severely Degraded')
-    pied.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Piedmont') %>% filter(Comparison == 'Good Condition - Moderately Degraded' | Comparison == 'Good Condition - Severely Degraded')
-    
     if(is.tibble(cp.sig) && nrow(cp.sig) > 0){
       cp.ratio = cp %>% 
-        mutate(Threshold = ifelse(cp[[column]] > cp.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
+        mutate(Threshold = ifelse(cp[[column]] > cp.mean$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
@@ -343,7 +350,7 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
     
     if(is.tibble(pied.sig) && nrow(pied.sig) > 0){
       pied.ratio = pied %>% 
-        mutate(Threshold = ifelse(pied[[column]] > pied.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
+        mutate(Threshold = ifelse(pied[[column]] > pied.mean$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
@@ -365,12 +372,10 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
     }
     
   } else {
-    cp.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Coastal Plain' & Comparison == 'Good Condition - Severely Degraded')
-    pied.sig = sig_table %>% filter(!is.na(`Significant?`)) %>% filter(Region == 'Piedmont' & Comparison == 'Good Condition - Severely Degraded')
-    
+
     if(is.tibble(cp.sig) && nrow(cp.sig) > 0){
       cp.ratio = cp %>% 
-        mutate(Threshold = ifelse(cp[[column]] <= cp.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
+        mutate(Threshold = ifelse(cp[[column]] <= cp.mean$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
@@ -388,12 +393,12 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                         'Odds Ratio' = NA,
                         'Risk Cases' = NA,
                         'Risk Controls' = NA) %>% 
-        mutate('Atrributable Risk' = NA)
+        mutate('Attributable Risk' = NA)
     }
     
     if(is.tibble(pied.sig) && nrow(pied.sig) > 0){
       pied.ratio = pied %>% 
-        mutate(Threshold = ifelse(pied[[column]] <= pied.sig$Mean, 'Within Threshold', 'Beyond Threshold'), 
+        mutate(Threshold = ifelse(pied[[column]] <= pied.mean$Mean, 'Within Threshold', 'Beyond Threshold'), 
                Classification = ifelse(Biotic.Classification == 'Good Condition', 'Control', 'Cases')) %>% 
         select(Classification, Threshold) %>%
         xtabs(~Threshold + Classification, data = .) %>%
@@ -411,7 +416,7 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                           'Odds Ratio' = NA,
                           'Risk Cases' = NA,
                           'Risk Controls' = NA) %>% 
-        mutate('Atrributable Risk' = NA)
+        mutate('Attributable Risk' = NA)
     }
   }
   
@@ -426,53 +431,3 @@ ratioanalysis = function(data = NULL, column = NULL, r = NULL, upper_conf = NULL
                  Pied_Ratio_Table = pied.ratio)
   return(ibi_list)
 }
-
-# pairwisePercentileTest2 = function (column = NULL, group = NULL, data = NULL, tau = 0.1, r = 10000, digits = 4) 
-# {
-#   d = data %>% select_(as.name(group), as.name(column))
-#   # Fix the grouping if it is not considered a factor
-#   d = d %>% mutate_if(is.character, funs(as.factor(.)))
-#   n = length(levels(d[[group]]))
-#   N = n * (n - 1)/2
-#   Z = tibble(Comparison = rep('A', N), p.value = rep(NA, N), p.adjust = rep(NA, N))
-#   
-#   for(i in 1:(n-1)){
-#     for(j in (i + 1):n){
-#       comp = paste(levels(d[[group]])[i], '-', levels(d[[group]])[j])
-#       print(comp)
-#       Dataz = d %>% 
-#         filter(d[[group]] == levels(d[[group]])[i] | d[[group]] == levels(d[[group]])[j])
-#       
-#       Diff = Dataz %>% 
-#         group_by_(as.name(group)) %>% 
-#         summarize_all(funs(list(quantile(., probs = 0.1)))) %>%
-#         unnest() %>%
-#         spread(1, 2) %>% 
-#         select(1, 2)
-#       
-#       diff = abs(Diff[1] - Diff[2])
-#       Count = 0
-#       for(k in 1:r){
-#         table_size = length(Dataz)
-#         S = Dataz %>% group_by_(as.name(group)) %>% sample_n(size = table_size, replace = TRUE)
-#         
-#         SDiff = S %>% 
-#           group_by_(as.name(group)) %>% 
-#           summarize_all(funs(list(quantile(., probs = 0.1)))) %>%
-#           unnest() %>%
-#           spread(1, 2) %>% 
-#           select(1, 2)
-#         
-#         Sdiff = abs(SDiff[1] - SDiff[2])
-#         if(Sdiff >= diff){
-#           Count = Count + 1
-#         }
-#       }
-#       P.value = Count / r
-#       Z = Z %>% add_row(Comparison = comp, p.value = signif(P.value, digits), p.adjust = NA)
-#     }
-#   }
-#   Z$p.adjust = signif(p.adjust(Z$p.value, method = 'fdr'), digits)
-#   Z = Z %>% filter(Comparison != 'A')
-#   return(Z)
-# }
